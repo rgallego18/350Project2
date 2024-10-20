@@ -219,11 +219,10 @@ fork(void)
   acquire(&ptable.lock);
   np->state = RUNNABLE;
   release(&ptable.lock);
-    if(winner == 1) {
-      curproc->state = RUNNING;
-      yield();
-    }
-
+  if(winner == 1) {
+    curproc->state = RUNNING;
+    yield();
+  }
   return pid;
 }
 
@@ -331,13 +330,13 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  
+
   int ran = 0; // CS 350/550: to solve the 100%-CPU-utilization-when-idling problem
 
   for(;;){
     // Enable interrupts on this processor.
     sti();
-
+        
         // Loop over process table looking for process to run.
         acquire(&ptable.lock);
         ran = 0;
@@ -359,6 +358,10 @@ scheduler(void)
 
           // Process is done running for now.
           // It should have changed its p->state before coming back.
+          if(nsched == 2) {
+            stride();
+            acquire(&ptable.lock);
+          }
           c->proc = 0;
     }
     release(&ptable.lock);
@@ -560,4 +563,126 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+int ticketsT[NPROC];
+int passes[NPROC];
+int strides[NPROC];
+
+void
+stride(void)
+{
+  release(&ptable.lock);
+  cli();
+  //procdump();
+  struct proc *p;
+  struct cpu *c = mycpu();
+  struct cpu saveCPU = *c;
+  int ran = 0; // CS 350/550: to solve the 100%-CPU-utilization-when-idling problem 
+  int prevActiveProc = 0;
+  c->proc = 0;
+  for(;;){
+    // Enable interrupts on this processor.
+    //procdump();
+    sti();
+    // Loop over process table looking for process to run.
+    acquire(&ptable.lock);
+    ran = 0;
+
+    int totalActiveProc = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) { // Count amount of active processes
+      if((p->state == RUNNABLE || p->state == RUNNING)) {
+        totalActiveProc++;
+        //cprintf("Pid: %d\n", p->pid);
+      }
+    }
+    if(totalActiveProc != prevActiveProc && (totalActiveProc != 0)) { // More/less processes added to system
+      int ticketDist = 100 / totalActiveProc;
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        if((p->state == RUNNABLE || p->state == RUNNING)) {
+          ticketsT[p->pid % NPROC] = ticketDist;
+          strides[p->pid % NPROC] = 1000 / ticketsT[p->pid % NPROC];
+        }
+        passes[p->pid % NPROC] = 0;
+      }
+      prevActiveProc = totalActiveProc;
+    }
+    struct proc *nextProc = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state == RUNNABLE || p->state == RUNNING) {
+        if( !nextProc || 
+            (passes[p->pid % NPROC] < passes[nextProc->pid % NPROC]) ||
+            (passes[p->pid % NPROC] == passes[nextProc->pid % NPROC] && p->pid < nextProc->pid)) 
+        {
+          nextProc = p;
+        }
+      }
+    }
+    if(nextProc) {
+      ran = 1;
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      c->proc = nextProc;
+      switchuvm(nextProc);
+      nextProc->state = RUNNING;
+      swtch(&(c->scheduler), nextProc->context);
+      switchkvm();
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      passes[nextProc->pid % NPROC] += strides[nextProc->pid % NPROC];
+      c->proc = 0;
+    }
+    release(&ptable.lock);
+
+    if (ran == 0){
+      halt();
+      if(nsched == 1) { // switch back to og scheduler
+        *c = saveCPU;
+        return;
+      }
+    }
+  }
+}
+
+int
+tickets_owned(int pid)
+{
+  if(nsched == 1) return 0;
+  yield();
+  return ticketsT[pid % NPROC];
+}
+
+int
+transfer_tickets(int pid, int tickets)
+{
+  if(tickets < 0) return -1;
+  cli();
+  yield();
+  struct proc *p;
+  int foundID = 0;
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if(p->pid == pid) {
+      foundID++;
+      break;
+    }
+  }
+  if(!foundID) {
+    release(&ptable.lock);
+    return -3;
+  }
+  int callingPID;
+  callingPID = myproc()->pid;
+  if(tickets > ticketsT[callingPID % NPROC] - 1) {
+    release(&ptable.lock);
+    return -2;
+  }
+  ticketsT[callingPID % NPROC] -= tickets;
+  ticketsT[pid % NPROC] += tickets;
+  strides[callingPID % NPROC] = 1000 / ticketsT[callingPID % NPROC];
+  strides[pid % NPROC] = 1000 / ticketsT[pid % NPROC];
+  release(&ptable.lock);
+  sti();
+  return ticketsT[callingPID % NPROC];
 }

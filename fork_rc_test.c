@@ -5,11 +5,11 @@
    stub functions for the system call user space wrapper functions are provided. 
    REMEMBER to disable the stub functions (by commenting the following macro) to 
    allow your implementation to work properly. */
-//#define STUB_FUNCS
-//#ifdef STUB_FUNCS
+#define STUB_FUNCS
+#ifdef STUB_FUNCS
 //void fork_winner(int winner) {}
 //void set_sched(int scheduler) {}
-//#endif
+#endif
 
 /* IMPORTANT INSTRUCTION: the test code below should not be changed. 
    Failure to follow this instruction will lead to zero point for this part */
@@ -45,7 +45,7 @@ main(int argc, char *argv[])
     }
 
     fork_winner(w); // set according to user input
-    //set_sched(SCHEDULER_DEFAULT); 
+    set_sched(SCHEDULER_DEFAULT); 
     
     for (i = 0; i < TOTAL_TEST_TRIALS; i++)
     {

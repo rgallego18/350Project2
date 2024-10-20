@@ -1,6 +1,6 @@
 extern int winner;
 
-// Per-CPU state
+// Per-CPU state 
 struct cpu {
   uchar apicid;                // Local APIC ID
   struct context *scheduler;   // swtch() here to enter scheduler
@@ -14,6 +14,7 @@ struct cpu {
 
 extern struct cpu cpus[NCPU];
 extern int ncpu;
+extern int nsched;
 
 //PAGEBREAK: 17
 // Saved registers for kernel context switches.

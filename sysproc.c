@@ -116,16 +116,46 @@ int sys_enable_sched_trace(void)
 int
 sys_fork_winner(void)
 {
-    int w;
-    
-    if(argint(0, &w) < 0) {
-        return -1;
-    }
-    if(w == 1) {
-        winner = 1;
-    }
-    else if(w == 0) {
-        winner = 0;
-    }
-    return 0;
+  int w;
+
+  if(argint(0, &w) < 0) {
+    return -1;
+  }
+  if(w == 1) {
+    winner = 1;
+  }
+  else if (w == 0) {
+    winner = 0;
+  }
+  return 0;
+}
+
+
+//static int regScheduler = 1;
+int nsched = 1;
+
+int 
+sys_set_sched(void)
+{
+  int val;
+  argint(0, &val);
+  nsched = val + 1;
+  return 0;
+}
+
+int
+sys_tickets_owned(void)
+{
+  int val;
+  argint(0, &val);
+  return tickets_owned(val);
+}
+
+int
+sys_transfer_tickets(void)
+{
+  int val1, val2;
+  argint(0, &val1);
+  argint(1, &val2);
+  return transfer_tickets(val1, val2);
 }
