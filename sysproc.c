@@ -131,7 +131,6 @@ sys_fork_winner(void)
 }
 
 
-//static int regScheduler = 1;
 int nsched = 1;
 
 int 

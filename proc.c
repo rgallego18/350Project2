@@ -574,7 +574,6 @@ stride(void)
 {
   release(&ptable.lock);
   cli();
-  //procdump();
   struct proc *p;
   struct cpu *c = mycpu();
   struct cpu saveCPU = *c;
@@ -583,7 +582,6 @@ stride(void)
   c->proc = 0;
   for(;;){
     // Enable interrupts on this processor.
-    //procdump();
     sti();
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
@@ -593,7 +591,6 @@ stride(void)
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) { // Count amount of active processes
       if((p->state == RUNNABLE || p->state == RUNNING)) {
         totalActiveProc++;
-        //cprintf("Pid: %d\n", p->pid);
       }
     }
     if(totalActiveProc != prevActiveProc && (totalActiveProc != 0)) { // More/less processes added to system
@@ -628,8 +625,6 @@ stride(void)
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
-      //procdump();
-      //cprintf("pid %d : %d : %d : %d : %d : %d : %d\n", p->pid, passes[p->pid % NPROC], passes[3], ticketsT[p->pid % NPROC], ticketsT[3], ticketsT[11], ticketsT[11]);
       c->proc = nextProc;
       switchuvm(nextProc);
       nextProc->state = RUNNING;
@@ -687,8 +682,6 @@ transfer_tickets(int pid, int tickets)
   }
   ticketsT[callingPID % NPROC] -= tickets;
   ticketsT[pid % NPROC] += tickets;
-  //strides[callingPID % NPROC] = 1000 / ticketsT[callingPID % NPROC];
-  //strides[pid % NPROC] = 1000 / ticketsT[pid % NPROC];
   release(&ptable.lock);
   sti();
   return ticketsT[callingPID % NPROC];
