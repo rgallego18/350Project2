@@ -601,11 +601,16 @@ stride(void)
       for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
         if((p->state == RUNNABLE || p->state == RUNNING)) {
           ticketsT[p->pid % NPROC] = ticketDist;
-          strides[p->pid % NPROC] = 1000 / ticketsT[p->pid % NPROC];
+          
         }
         passes[p->pid % NPROC] = 0;
       }
       prevActiveProc = totalActiveProc;
+    }
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+      if((ticketsT[p->pid % NPROC] != 0) && (strides[p->pid % NPROC] != (1000 / ticketsT[p->pid % NPROC]))) {
+        strides[p->pid % NPROC] = 1000 / ticketsT[p->pid % NPROC];
+      }
     }
     struct proc *nextProc = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -623,6 +628,8 @@ stride(void)
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
+      //procdump();
+      //cprintf("pid %d : %d : %d : %d : %d : %d : %d\n", p->pid, passes[p->pid % NPROC], passes[3], ticketsT[p->pid % NPROC], ticketsT[3], ticketsT[11], ticketsT[11]);
       c->proc = nextProc;
       switchuvm(nextProc);
       nextProc->state = RUNNING;
@@ -680,8 +687,8 @@ transfer_tickets(int pid, int tickets)
   }
   ticketsT[callingPID % NPROC] -= tickets;
   ticketsT[pid % NPROC] += tickets;
-  strides[callingPID % NPROC] = 1000 / ticketsT[callingPID % NPROC];
-  strides[pid % NPROC] = 1000 / ticketsT[pid % NPROC];
+  //strides[callingPID % NPROC] = 1000 / ticketsT[callingPID % NPROC];
+  //strides[pid % NPROC] = 1000 / ticketsT[pid % NPROC];
   release(&ptable.lock);
   sti();
   return ticketsT[callingPID % NPROC];
