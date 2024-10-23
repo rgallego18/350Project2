@@ -1,0 +1,18 @@
+Group members: Ryan Gallego, Priya Debnath, Ethan Bown, Shiva Ramaia
+
+Status of implementation: completed
+
+Ryan:
+Did Questions 1, 2, and 3
+
+
+Priya:
+Did 2.1
+
+
+Ethan:
+Worked on 2.2/2.3
+
+
+Shiva:
+Worked on 2.2/2.3 
